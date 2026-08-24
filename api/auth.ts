@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDb, getPublicAuthClient, baseUrl } from "../lib/db.js";
-import { clearSessionCookies, ensureMember, requireMember, setSessionCookies } from "../lib/auth.js";
-import { parseBody, queryValue, noStore } from "../lib/http.js";
+import { getDb, baseUrl } from "../lib/db.js";
+import { noStore, queryValue } from "../lib/http.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const op = queryValue(req, "op") || "session";
@@ -13,7 +12,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(probe.error ? 503 : 200).json({
         ok: !probe.error,
         app: "LINK Preview Studio",
-        version: "3.0.0",
+        version: "3.0.1-direct",
+        access_mode: "direct",
         supabase: !probe.error,
         base_url: baseUrl() || null
       });
@@ -22,49 +22,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  if (req.method === "POST" && op === "login") {
-    const input = parseBody(req);
-    const email = String(input.email || "").trim().toLowerCase();
-    const password = String(input.password || "");
-    if (!email || !password) return res.status(400).json({ error: "Email and password are required" });
-
-    const client = getPublicAuthClient();
-    const result = await client.auth.signInWithPassword({ email, password });
-    if (result.error || !result.data?.session || !result.data?.user) {
-      return res.status(401).json({ error: "Correo o contraseña incorrectos." });
-    }
-
-    try {
-      const member = await ensureMember(getDb(), result.data.user);
-      if (!member) {
-        clearSessionCookies(res);
-        return res.status(403).json({ error: "Esta cuenta existe, pero no está autorizada para LINK Preview Studio." });
-      }
-      setSessionCookies(res, result.data.session);
-      noStore(res);
-      return res.status(200).json({
-        user: { id: result.data.user.id, email: result.data.user.email },
-        member
-      });
-    } catch (error: any) {
-      clearSessionCookies(res);
-      return res.status(500).json({ error: error?.message || "Could not authorize account" });
-    }
-  }
-
-  if (req.method === "POST" && op === "logout") {
-    clearSessionCookies(res);
-    noStore(res);
-    return res.status(200).json({ ok: true });
-  }
-
   if (req.method === "GET" && op === "session") {
-    const auth = await requireMember(req, res);
-    if (!auth) return;
     noStore(res);
     return res.status(200).json({
-      user: { id: auth.user.id, email: auth.user.email },
-      member: auth.member
+      user: { id: "direct-studio", email: "Acceso directo" },
+      member: { user_id: "direct-studio", role: "owner", status: "active" },
+      access_mode: "direct"
+    });
+  }
+
+  if (req.method === "POST" && (op === "login" || op === "logout")) {
+    noStore(res);
+    return res.status(200).json({
+      ok: true,
+      access_mode: "direct",
+      message: "Browser authentication is disabled."
     });
   }
 

@@ -13,21 +13,11 @@
 </style>
 </head>
 <body>
-<div class="auth" id="authGate">
-  <div class="auth-card">
-    <div class="auth-mark"></div>
-    <h2>LINK Preview Studio</h2>
-    <p>Acceso privado. Usa tu cuenta autorizada. La sesión queda protegida en este navegador mediante cookies HttpOnly.</p>
-    <input id="loginEmail" type="email" placeholder="tu@email.com" autocomplete="username">
-    <div class="password-wrap"><input id="loginPassword" type="password" placeholder="Contraseña" autocomplete="current-password"><button id="togglePassword" type="button">Ver</button></div>
-    <button id="loginBtn">Entrar</button>
-    <p class="auth-msg" id="authMsg"></p>
-  </div>
-</div>
+<div id="authGate" hidden></div>
 <div class="app">
 <header class="top">
   <div class="brand"><button class="icon" id="collapseBtn" title="Achicar panel">☰</button><div class="mark"></div><div><strong>LINK Preview Studio</strong><small>Sistema operativo de soluciones</small></div></div>
-  <div class="top-actions"><span class="status ok health-label" id="healthBadge">Conectado</span><button class="pill" id="logoutBtn">Cerrar sesión</button></div>
+  <div class="top-actions"><span class="status ok health-label" id="healthBadge">Conectado</span><span class="pill">Acceso directo</span></div>
 </header>
 <div class="layout" id="layout">
   <aside>
@@ -48,13 +38,12 @@ const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=
 let ws={segments:[],clients:[],profiles:[],projects:[],designs:[],templates:[],requests:[],briefs:[],commitments:[],deliverables:[],integrations:[],references:[],activity:[],stats:{}}, view={type:"home",id:null}, currentDesign=null,currentUpdatedAt="",loadingWorkspace=false,collapsed=localStorage.getItem("link-sidebar-collapsed")==="1";
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2200)}
 function setCollapsed(v){collapsed=v;$("#layout").classList.toggle("collapsed",v);$("#sideCollapse").textContent=v?"▶":"◀";localStorage.setItem("link-sidebar-collapsed",v?"1":"0")}setCollapsed(collapsed);$("#collapseBtn").onclick=()=>setCollapsed(!collapsed);$("#sideCollapse").onclick=()=>setCollapsed(!collapsed);
-async function api(url,opts={}){const r=await fetch(url,{credentials:"same-origin",...opts,headers:{...(opts.body?{"Content-Type":"application/json"}:{}),...(opts.headers||{})}});if(r.status===401){$("#authGate").hidden=false;throw new Error("Sesión expirada")}return r}
-async function authorize(){const r=await fetch("/api/auth?op=session",{credentials:"same-origin",cache:"no-store"});if(!r.ok){$("#authGate").hidden=false;return false}const d=await r.json();$("#userEmail").textContent=d.user.email||"";$("#userRole").textContent=d.member.role||"member";$("#authGate").hidden=true;return true}
-const savedEmail=localStorage.getItem("link-login-email")||"";if(savedEmail)$("#loginEmail").value=savedEmail;
-$("#togglePassword").onclick=()=>{const i=$("#loginPassword"),v=i.type==="text";i.type=v?"password":"text";$("#togglePassword").textContent=v?"Ver":"Ocultar"};
-async function login(){const email=$("#loginEmail").value.trim(),password=$("#loginPassword").value;if(!email||!password){$("#authMsg").textContent="Escribe correo y contraseña.";return}$("#loginBtn").disabled=true;$("#loginBtn").textContent="Entrando…";$("#authMsg").textContent="";const r=await fetch("/api/auth?op=login",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});const d=await r.json().catch(()=>({}));$("#loginBtn").disabled=false;$("#loginBtn").textContent="Entrar";if(!r.ok){$("#authMsg").textContent=d.error||"No se pudo iniciar sesión.";return}localStorage.setItem("link-login-email",email);$("#authGate").hidden=true;$("#userEmail").textContent=d.user?.email||email;$("#userRole").textContent=d.member?.role||"member";await boot()}
-$("#loginBtn").onclick=login;$("#loginPassword").addEventListener("keydown",e=>{if(e.key==="Enter")login()});$("#loginEmail").addEventListener("keydown",e=>{if(e.key==="Enter")$("#loginPassword").focus()});
-$("#logoutBtn").onclick=async()=>{await fetch("/api/auth?op=logout",{method:"POST",credentials:"same-origin"});location.reload()};
+async function api(url,opts={}){return fetch(url,{...opts,headers:{...(opts.body?{"Content-Type":"application/json"}:{}),...(opts.headers||{})}})}
+async function authorize(){
+  $("#userEmail").textContent="Sin login";
+  $("#userRole").textContent="Owner · acceso directo";
+  return true
+}
 const clientsProjects=id=>ws.projects.filter(p=>p.client_id===id&&p.status==="active"),designsFor=id=>ws.designs.filter(d=>d.project_id===id),reqFor=id=>ws.requests.filter(r=>r.project_id===id),commFor=id=>ws.commitments.filter(c=>c.project_id===id),delFor=id=>ws.deliverables.filter(d=>d.project_id===id),intFor=id=>ws.integrations.filter(i=>i.project_id===id),briefFor=id=>ws.briefs.find(b=>b.project_id===id),segmentName=id=>ws.segments.find(s=>s.id===id)?.name||"Sin segmento",clientName=id=>ws.clients.find(c=>c.id===id)?.name||"General",profileFor=id=>ws.profiles.find(p=>p.client_id===id);
 function statusClass(s){return["connected","done","delivered","approved","ready","active","published"].includes(s)?"ok":["designing","in_progress","in_production","evolving"].includes(s)?"hot":["error","cancelled","archived"].includes(s)?"bad":""}
 function renderTree(){const q=$("#searchInput").value.trim().toLowerCase(),tree=$("#tree");tree.innerHTML=`<div class="nav-item ${view.type==="home"?"active":""}" data-view="home"><span class="dot"></span><span class="name">Inicio</span></div><div class="side-label">Clientes / proyectos</div>`;ws.clients.forEach(c=>{const block=document.createElement("div");block.innerHTML=`<div class="client-head"><span class="dot"></span><span class="name">${esc(c.name)}</span></div>`;const nodes=clientsProjects(c.id),root=nodes.find(p=>p.kind==="client_root"),children=nodes.filter(p=>p.kind==="project");const hits=children.filter(p=>!q||p.name.toLowerCase().includes(q)||c.name.toLowerCase().includes(q)||designsFor(p.id).some(d=>d.title.toLowerCase().includes(q)));if(q&&!hits.length&&!c.name.toLowerCase().includes(q)&&!(root&&designsFor(root.id).some(d=>d.title.toLowerCase().includes(q))))return;children.forEach(p=>{const ph=document.createElement("div");ph.className="project-head"+(view.type==="project"&&view.id===p.id?" active":"");ph.dataset.project=p.id;ph.innerHTML=`<span class="dot"></span><span class="name">${esc(p.name)}</span><span class="mini">${esc(p.phase||"")}</span>`;block.appendChild(ph);designsFor(p.id).filter(d=>!q||d.title.toLowerCase().includes(q)).forEach(d=>block.appendChild(designNode(d)))});if(root)designsFor(root.id).filter(d=>!q||d.title.toLowerCase().includes(q)).forEach(d=>block.appendChild(designNode(d)));tree.appendChild(block)});const general=ws.projects.find(p=>p.kind==="inbox"||p.slug==="general");tree.insertAdjacentHTML("beforeend",`<div class="side-label">Sistema</div>${general?`<div class="project-head ${view.type==="project"&&view.id===general.id?"active":""}" data-project="${general.id}"><span class="dot"></span><span class="name">General / Inbox</span><span class="mini">${designsFor(general.id).length}</span></div>`:""}<div class="nav-item ${view.type==="templates"?"active":""}" data-view="templates"><span class="dot"></span><span class="name">Plantillas</span><span class="mini">${ws.templates.length}</span></div><div class="nav-item ${view.type==="references"?"active":""}" data-view="references"><span class="dot"></span><span class="name">Referencias</span><span class="mini">${ws.references.length}</span></div>`);tree.querySelectorAll("[data-view]").forEach(x=>x.onclick=()=>navigate(x.dataset.view));tree.querySelectorAll("[data-project]").forEach(x=>x.onclick=()=>navigate("project",x.dataset.project));tree.querySelectorAll("[data-design]").forEach(x=>x.onclick=()=>navigate("design",x.dataset.design))}
@@ -81,7 +70,7 @@ async function loadWorkspace(){if(loadingWorkspace)return;loadingWorkspace=true;
 function populateModal(){const seg=$("#newSegment"),cl=$("#newClient");if(seg){seg.innerHTML='<option value="">Sin segmento</option>'+ws.segments.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("")}if(cl)cl.innerHTML=ws.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("")}
 $("#searchInput").oninput=renderTree;$("#newBtn").onclick=()=>{$("#newModal").hidden=false;$("#newName").focus()};document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>$("#"+b.dataset.close).hidden=true);$("#newType").onchange=()=>{const project=$("#newType").value==="project";$("#clientWrap").hidden=!project;$("#segmentWrap").hidden=project;$("#descLabel").hidden=!project;$("#newDescription").hidden=!project};$("#newType").dispatchEvent(new Event("change"));$("#saveNew").onclick=async()=>{const type=$("#newType").value,name=$("#newName").value.trim();if(!name)return;const payload=type==="client"?{action:"create_client",name,segment_id:$("#newSegment").value||null}:{action:"create_project",name,client_id:$("#newClient").value||null,description:$("#newDescription").value||null};const r=await api("/api/workspace",{method:"POST",body:JSON.stringify(payload)});const d=await r.json().catch(()=>({}));if(!r.ok){toast(d.error||"No se pudo crear");return}$("#newModal").hidden=true;$("#newName").value="";$("#newDescription").value="";toast(type==="client"?"Cliente creado":"Proyecto creado");await loadWorkspace();if(d.project?.id)navigate("project",d.project.id)};
 async function boot(){await loadWorkspace();const designId=new URLSearchParams(location.search).get("design");if(designId&&ws.designs.some(d=>d.id===designId))view={type:"design",id:designId};renderTree();renderView();setInterval(()=>{if(view.type==="design")loadCurrentDesign()},1400);setInterval(loadWorkspace,12000)}
-(async()=>{if(await authorize())boot()})();
+(async()=>{await authorize();await boot()})();
 </script>
 </body>
 </html>

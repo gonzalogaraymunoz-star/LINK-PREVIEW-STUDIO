@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>LINK Preview</title>
+<style>
+html,body{width:100%;height:100%;margin:0;background:#f2efe8;font-family:system-ui,-apple-system,sans-serif}iframe{width:100%;height:100%;border:0;display:block;background:#fff}.msg{height:100%;display:grid;place-items:center;color:#6f6a61;font-size:14px;padding:24px;text-align:center}.msg b{display:block;color:#151515;font-size:22px;margin-bottom:7px}
+</style>
+</head>
+<body>
+<div class="msg" id="msg"><div><b>LINK Preview</b><span>Cargando creación…</span></div></div>
+<iframe id="frame" sandbox="allow-scripts allow-forms allow-modals allow-popups" hidden></iframe>
+<script>
+const params=new URLSearchParams(location.search),id=params.get("id")||"",token=params.get("token")||"",msg=document.querySelector("#msg"),frame=document.querySelector("#frame");
+(async()=>{if(!id||!token){msg.innerHTML="<div><b>Enlace inválido</b><span>Falta información del preview.</span></div>";return}try{const r=await fetch(`/api/files?op=content&id=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`,{cache:"no-store",credentials:"omit"});if(!r.ok)throw new Error();const d=await r.json();document.title=(d.title||"LINK Preview")+" · LINK Preview";frame.srcdoc=d.html;frame.hidden=false;msg.hidden=true}catch{msg.innerHTML="<div><b>Enlace vencido</b><span>Este preview ya no está disponible o el enlace no es válido.</span></div>"}})();
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "name": "LINK Preview Studio",
+  "version": "3.0.0",
+  "architecture": "ChatGPT -> MCP -> Supabase -> Studio -> Files -> GitHub/Vercel",
+  "vercel_serverless_functions": 7,
+  "hobby_plan_target": true,
+  "api_functions": [
+    "auth",
+    "workspace",
+    "projects",
+    "design",
+    "files",
+    "pdf",
+    "mcp"
+  ],
+  "features": [
+    "password authentication with HttpOnly cookies",
+    "authorized app members",
+    "segments and clients",
+    "client DNA and business rules",
+    "projects and project 360",
+    "requests",
+    "commitments",
+    "deliverables",
+    "project integrations",
+    "HTML previews",
+    "immutable versions",
+    "version restore as a new version",
+    "reusable templates",
+    "approved design references",
+    "PDF export",
+    "HTML download",
+    "temporary signed share links",
+    "collapsible client/project sidebar",
+    "desktop/tablet/mobile preview",
+    "MCP creation and orchestration tools",
+    "General Inbox",
+    "sandboxed external preview wrapper",
+    "production MCP authentication"
+  ],
+  "runtime": "Node 24.x",
+  "production_dependencies": {
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "@sparticuz/chromium": "149.0.0",
+    "@supabase/supabase-js": "2.112.3",
+    "puppeteer-core": "25.1.0",
+    "zod": "4.4.3"
+  }
+}

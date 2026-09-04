@@ -1,6 +1,6 @@
 {
   "name": "link-preview-studio",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,13 +12,13 @@
     "@modelcontextprotocol/server": "2.0.0",
     "@sparticuz/chromium": "149.0.0",
     "@supabase/supabase-js": "2.112.3",
+    "@types/node": "24.13.3",
     "puppeteer-core": "25.1.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@vercel/node": "7.0.0",
-    "typescript": "7.0.2",
-    "@types/node": "24.13.3"
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": "24.x"

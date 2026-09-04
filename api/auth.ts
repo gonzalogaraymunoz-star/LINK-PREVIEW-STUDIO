@@ -6,14 +6,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const op = queryValue(req, "op") || "session";
 
   if (req.method === "GET" && op === "health") {
+    noStore(res);
     try {
       const db = getDb();
       const probe = await db.from("projects").select("id", { count: "exact", head: true });
       return res.status(probe.error ? 503 : 200).json({
         ok: !probe.error,
         app: "LINK Preview Studio",
-        version: "3.0.1-direct",
+        version: "3.0.2-direct",
         access_mode: "direct",
+        browser_auth: false,
         supabase: !probe.error,
         base_url: baseUrl() || null
       });
@@ -27,7 +29,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       user: { id: "direct-studio", email: "Acceso directo" },
       member: { user_id: "direct-studio", role: "owner", status: "active" },
-      access_mode: "direct"
+      access_mode: "direct",
+      browser_auth: false
     });
   }
 
@@ -36,6 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       ok: true,
       access_mode: "direct",
+      browser_auth: false,
       message: "Browser authentication is disabled."
     });
   }
